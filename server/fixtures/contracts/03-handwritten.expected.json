@@ -1,0 +1,38 @@
+{
+  "deposit": {
+    "value": null,
+    "confidence": "low"
+  },
+  "monthlyRent": {
+    "value": 1200000,
+    "confidence": "high"
+  },
+  "moveInDate": {
+    "value": "2023-05-10",
+    "confidence": "high"
+  },
+  "termMonths": {
+    "value": 24,
+    "confidence": "high"
+  },
+  "landlordName": {
+    "value": "정미래",
+    "confidence": "high"
+  },
+  "tenantName": {
+    "value": "강도윤",
+    "confidence": "high"
+  },
+  "dong": {
+    "value": "204",
+    "confidence": "high"
+  },
+  "ho": {
+    "value": "1103",
+    "confidence": "high"
+  },
+  "exclusiveArea": {
+    "value": 101.82,
+    "confidence": "medium"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "butler-settlement-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "버틀러 퇴거 정산 PoC — API 서버 (Express + SQLite)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "seed": "node src/seed.js",
+    "seed:demo": "node src/seed-demo.js",
+    "check-env": "node src/check-env.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.4.1",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "multer": "^2.4.0"
+  }
+}

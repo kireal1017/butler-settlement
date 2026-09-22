@@ -1,0 +1,13 @@
+{
+  "note": "단독 소유, 정상. 갑구 1번 소유권보존(법인)을 건너뛰고 2번 소유권이전을 읽어야 한다.",
+  "address": "서울특별시 양천구 목동 300-130",
+  "dong": "17",
+  "floor": "1",
+  "ho": "101",
+  "uniqueNo": "1146-2019-003812",
+  "exclusiveArea": 84.95,
+  "owners": ["김성호"],
+  "issuedNo": "1146-2026-002847",
+  "verifyAgainst": { "ownerName": "김성호", "dong": "17", "ho": "101" },
+  "expectedMatch": "matched"
+}

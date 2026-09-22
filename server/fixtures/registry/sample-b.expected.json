@@ -1,0 +1,13 @@
+{
+  "note": "공유자 2인(지분 2분의 1). 고유번호에 공백이 섞여 있고, 소유자명이 '공유자' 바로 뒤가 아니라 지분 표기 다음에 온다.",
+  "address": "서울특별시 양천구 목동 300-130",
+  "dong": "7",
+  "floor": "5",
+  "ho": "502",
+  "uniqueNo": "1146-2019-004507",
+  "exclusiveArea": 59.88,
+  "owners": ["이정민", "이수현"],
+  "issuedNo": "1146-2026-002851",
+  "verifyAgainst": { "ownerName": "이수현", "dong": "7", "ho": "502" },
+  "expectedMatch": "matched"
+}

@@ -1,0 +1,13 @@
+{
+  "note": "파싱은 정상이지만 등기부 소유자(박태훈)가 임대인(김성호)과 다르다 → name_mismatch.",
+  "address": "경기도 성남시 분당구 정자동 178-2",
+  "dong": "201",
+  "floor": "18",
+  "ho": "1801",
+  "uniqueNo": "1355-2011-008820",
+  "exclusiveArea": 101.82,
+  "owners": ["박태훈"],
+  "issuedNo": "1355-2026-007731",
+  "verifyAgainst": { "ownerName": "김성호", "dong": "201", "ho": "1801" },
+  "expectedMatch": "name_mismatch"
+}
