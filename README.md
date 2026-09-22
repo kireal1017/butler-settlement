@@ -329,6 +329,7 @@ DB에 쌓아 두지 않고 규칙으로 그때그때 계산합니다.
 
 | 문서 | 내용 |
 |---|---|
+| [docs/POC-SUMMARY.md](docs/POC-SUMMARY.md) | **구조 요약** — 유스케이스 · 아키텍처 · 파일별 책임 · 주행 검증 결과 |
 | [docs/V2-SPEC.md](docs/V2-SPEC.md) | 전체 명세 — 구현 순서는 여기 §9 |
 | [docs/progress.md](docs/progress.md) | **어디까지 했는지.** 단계별 상태 · 설계 판단 · 잡은 버그 |
 | [docs/CONTRACT-OCR-PLAN.md](docs/CONTRACT-OCR-PLAN.md) | 계약서 OCR 설계 |
