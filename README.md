@@ -9,7 +9,7 @@
 - **프런트엔드** Vue 3 + Vite (`:5173`)
 - **백엔드** Express 5 + SQLite (`:3001`)
 - **외부 연동** K-apt 공공데이터(국토교통부), CLOVA OCR — **둘 다 없어도 전 구간이 돌아갑니다**
-- **테스트** `node --test` 10묶음 190건 전부 통과
+- **테스트** `node --test` 11묶음 200건 전부 통과
 
 ---
 
@@ -100,7 +100,7 @@ cd server && npm run seed:demo    # 집·계약·점검이 들어간 상태로 �
 ### 테스트
 
 ```bash
-cd server && npm test             # 10묶음 190건
+cd server && npm test             # 11묶음 200건
 ```
 
 | 묶음 | 무엇을 지키나 |
@@ -113,6 +113,7 @@ cd server && npm test             # 10묶음 190건
 | `renewal.test.js` / `inspection.test.js` | 갱신·거절, 퇴거 점검 |
 | `house-log.test.js` | 집 단위 이력 (품목·수선) |
 | `kapt.test.js` | 공공데이터 어댑터 (네트워크 스텁) |
+| `tenancy-chain.test.js` | 갱신 체인 · 품목 승계 · 0원 정산서 확정 |
 
 ---
 
