@@ -13,16 +13,21 @@
 1. **`server/src/engine/**` 를 수정하지 마세요.** 계산 엔진은 DB·네트워크를 모르는 순수 함수이고,
    확정된 정산서를 나중에 재계산해 검증하기 위해 이 성질이 유지되어야 합니다.
    계산식을 바꿔야 한다면 먼저 `server/test/engine.test.js` 에 테스트를 추가하고 바꾸세요.
-2. **`npm test` 는 항상 전부 통과 상태**여야 합니다. 현재 8묶음 142건입니다.
-   - `engine.test.js` 12건 — 계산 엔진. **깨졌다면 엔진을 건드린 것입니다.**
-   - `registry.test.js` 17건 — 등기부 파서 (픽스처 기반, DB 비의존)
-   - `share.test.js` 13건 — 공유 링크·규칙 버전 (임시 DB 사용)
-   - `tasks.test.js` 22건 — 할 일 규칙 (임시 DB 사용, 날짜는 오늘 기준 상대값)
-   - `renewal.test.js` 22건 — 갱신 체인 · 기간 계산 · Rule Lock 승계
-   - `inspection.test.js` 23건 — 퇴거 개시 · 점검 제출/검토 · damage_reports
-   - `kapt.test.js` 18건 — K-apt 어댑터·적재. `globalThis.fetch` 를 스텁해
+2. **`npm test` 는 항상 전부 통과 상태**여야 합니다. 현재 11묶음 200건입니다.
+   - `engine.test.js` — 계산 엔진. **깨졌다면 엔진을 건드린 것입니다.**
+   - `registry.test.js` — 등기부 파서 (픽스처 기반, DB 비의존)
+   - `contract-ocr.test.js` — 계약서 파서 · 한글 금액 · 마스킹
+   - `share.test.js` — 공유 링크·규칙 버전 (임시 DB 사용)
+   - `settlement-share.test.js` — 정산서 임차인 합의 링크
+   - `tasks.test.js` — 할 일 규칙 (임시 DB 사용, 날짜는 오늘 기준 상대값)
+   - `renewal.test.js` — 갱신 체인 · 기간 계산 · Rule Lock 승계
+   - `inspection.test.js` — 퇴거 개시 · 점검 제출/검토 · damage_reports
+   - `house-log.test.js` — 집 단위 이력 (품목 시공 · 수선). 라우터 검증을 타려고
+     임시 포트에 express 를 띄워 **실제 요청**을 보냅니다.
+   - `kapt.test.js` — K-apt 어댑터·적재. `globalThis.fetch` 를 스텁해
      **네트워크 없이** 돕니다. 공공데이터가 죽어도 테스트는 초록이어야 합니다.
-   - `settlement-share.test.js` 15건 — 정산서 임차인 합의 링크
+   - `tenancy-chain.test.js` — 갱신 체인의 수선 누적 · 품목 승계 ·
+     전 항목 0원 정산서의 확정. 전 구간 주행에서 잡은 결함 3건의 회귀 테스트입니다.
 3. **외부 키 없이 전체 흐름이 돌아야 합니다.** K-apt·OCR 모두 키가 없으면 픽스처로 폴백합니다.
    새 외부 연동을 추가할 때도 같은 패턴(`services/kapt.js`)을 따르세요.
 4. **계약 파기**라는 용어를 쓰지 마세요. 정상 종료는 **계약 만료 / 합의 해지**이고,
