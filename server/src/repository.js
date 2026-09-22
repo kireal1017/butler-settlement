@@ -41,6 +41,45 @@ export const getDamages = (contractId) => db.prepare(
 export const getRepairEvents = (contractId) => db.prepare(
   `SELECT * FROM repair_events WHERE contract_id = ? ORDER BY occurred_on`).all(contractId);
 
+/**
+ * 갱신 체인 — 이 계약과 그 위의 모든 부모 계약 id.
+ *
+ * 갱신은 새 임대차가 아니라 **같은 임대차의 연장**이다. 그래서 입주일도 최초
+ * 입주일을 그대로 가져온다(service.renewContract 주석). 그런데 수선과 미납은
+ * 계약 id 로만 묶여 있어서, 4년 거주 중 2년차에 갱신하면 **첫 2년의 수선이
+ * 정산서에서 통째로 사라졌다** — 같은 임대차인데 장충금은 4년치를 세고
+ * 수선은 마지막 2년만 세는 상태였다.
+ *
+ * 퇴거 점검 결과(damage_reports)는 여기에 넣지 않는다. 점검은 임대차가 끝날 때
+ * 마지막 계약에서 한 번만 일어나고, 그 항목은 그 계약의 rule_items 를 가리킨다.
+ * 부모 계약의 항목을 끌어오면 가리키는 품목 id 가 어긋난다.
+ */
+export const contractChainIds = (contractId) => {
+  const parentOf = db.prepare(`SELECT parent_contract_id FROM contracts WHERE id = ?`);
+  const ids = [];
+  let cur = Number(contractId);
+  /* 데이터가 잘못 순환해도 멈춘다 — 체인이 깊어야 몇 단계다 */
+  while (cur != null && !ids.includes(cur) && ids.length < 50) {
+    ids.push(cur);
+    cur = parentOf.get(cur)?.parent_contract_id ?? null;
+  }
+  return ids;
+};
+
+const inChain = (contractId, sql) => {
+  const ids = contractChainIds(contractId);
+  return db.prepare(sql.replace('@ids', ids.map(() => '?').join(','))).all(...ids);
+};
+
+/** 이 임대차 전체(갱신 포함)의 수선 이력 */
+export const getRepairEventsInChain = (contractId) => inChain(contractId,
+  `SELECT * FROM repair_events WHERE contract_id IN (@ids) ORDER BY occurred_on`);
+
+/** 이 임대차 전체(갱신 포함)의 미납 기록 */
+export const getArrearsInChain = (contractId) => inChain(contractId,
+  `SELECT ym, amount, overdue_days FROM rent_arrears
+   WHERE contract_id IN (@ids) AND amount > 0 ORDER BY ym`);
+
 export const getArrears = (contractId) => db.prepare(
   `SELECT ym, amount, overdue_days FROM rent_arrears WHERE contract_id = ? AND amount > 0`
 ).all(contractId);
@@ -171,6 +210,11 @@ export const getUnitHistory = (unitId) => ({
    * 같은 품목이면 **가장 최근에 시공한 쪽**이 이긴다 — 이력을 적어 둔 뒤 계약을 맺든,
    * 계약 중에 교체하든, 화면에 남아야 하는 것은 마지막 시공일 하나다.
    *
+   * ⚠ 묶는 기준은 **구분 + 품목명**이다. 예전에는 구분만으로 묶어서, 같은 'appliance'
+   *   인 인덕션과 에어컨 중 나중에 시공한 하나만 살아남고 나머지가 통째로 사라졌다.
+   *   사라진 품목은 다음 계약의 Rule Lock 에 오르지 못하고, 그러면 퇴거 점검에서
+   *   그 품목이 파손돼도 내용연수·잔가율을 적용할 근거가 없어 원상회복 계산에서 빠진다.
+   *
    * ⚠ SQLite 의 bare column 규칙에 기댄다: MAX() 를 쓴 GROUP BY 행에서는 집계되지 않은
    *   컬럼이 **그 최댓값 행의 값**으로 온다. 그래서 label·내용연수·교체비용이 최신 시공
    *   기록의 것으로 따라온다. 다른 DB 로 옮긴다면 이 쿼리는 다시 써야 한다.
@@ -192,8 +236,8 @@ export const getUnitHistory = (unitId) => ({
       JOIN contracts c  ON c.id = rs.contract_id
       WHERE c.unit_id = ?
     )
-    GROUP BY category
-    ORDER BY category`).all(unitId, unitId),
+    GROUP BY category, label
+    ORDER BY category, label`).all(unitId, unitId),
 
   /** 집에 직접 적은 시공 이력만 — 지울 수 있는 것은 이쪽뿐이다 */
   unitItems: db.prepare(`

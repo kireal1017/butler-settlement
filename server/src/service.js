@@ -699,8 +699,10 @@ export function calculate(contractId) {
     maintenanceRate: mntRow?.ratePerSqm ?? 0,
     maintenancePrepaid: prepaid?.amount ?? 0,
     damages: repo.getDamages(contractId),
-    repairEvents: repo.getRepairEvents(contractId),
-    arrears: repo.getArrears(contractId),
+    /* 갱신 체인 전체를 본다. 장충금은 최초 입주일부터 세면서 수선만 마지막 계약에서
+       세면, 같은 임대차인데 기간이 두 개인 정산서가 된다. */
+    repairEvents: repo.getRepairEventsInChain(contractId),
+    arrears: repo.getArrearsInChain(contractId),
   });
 
   return {
@@ -848,7 +850,17 @@ export function agreementState(allLines) {
     tenantAgreed,
     disputedCount: disputed.length,
     disputedSeqs: disputed.map((l) => l.seq),
-    bothAgreedAll: total > 0 && landlordAgreed === total && tenantAgreed === total,
+    /**
+     * 금액이 있는 줄이 하나도 없으면(전 항목 0원) **합의할 것이 없으므로 확정할 수 있다.**
+     *
+     * 예전에는 `total > 0` 을 달아 두어서, 공제도 반환도 없는 정산서가 영영 확정되지
+     * 않았다. 그러면 계약이 `closing` 에 남고 집도 공실로 돌아오지 못해, 임대인이
+     * 손쓸 방법 없이 그 집이 잠겼다. 실제로 4년 거주 계약에서 이 상태가 나왔다.
+     *
+     * 이 경우 보증금은 전액 반환이고 임차인이 눌러야 할 항목도 없다.
+     */
+    bothAgreedAll: landlordAgreed === total && tenantAgreed === total
+      && disputed.length === 0,
   };
 }
 

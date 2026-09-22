@@ -85,17 +85,33 @@ test('시공 이력은 다음 계약 Rule Lock 이 읽는 items 에 그대로 �
   assert.equal(wallpaper.replacementCost, 1200000);
 });
 
-test('같은 구분이면 더 최근 시공일이 이긴다', async () => {
+test('같은 품목을 다시 시공하면 더 최근 시공일이 이긴다', async () => {
   const unitId = makeUnit();
   await call('POST', `/units/${unitId}/items`, ITEM);
-  await call('POST', `/units/${unitId}/items`,
-    { ...ITEM, label: '거실만 재도배', lastRenewedOn: '2025-08-01' });
+  await call('POST', `/units/${unitId}/items`, { ...ITEM, lastRenewedOn: '2025-08-01' });
 
   const { body } = await call('GET', `/units/${unitId}`);
   const wallpaper = body.items.filter((i) => i.category === 'wallpaper');
-  assert.equal(wallpaper.length, 1, '구분마다 한 줄만 남아야 한다');
+  assert.equal(wallpaper.length, 1, '같은 품목은 한 줄로 합쳐야 한다');
   assert.equal(wallpaper[0].lastRenewedOn, '2025-08-01');
-  assert.equal(wallpaper[0].label, '거실만 재도배', '최신 시공 기록의 이름이 따라와야 한다');
+});
+
+/**
+ * 묶는 기준은 구분이 아니라 **품목명**이다.
+ *
+ * 예전에는 구분만으로 묶었다. 그래서 같은 'appliance' 인 인덕션과 에어컨 중
+ * 나중에 시공한 하나만 남고 나머지가 사라졌고, 사라진 품목은 다음 계약의
+ * Rule Lock 에 오르지 못해 퇴거 때 파손돼도 계산 근거가 없었다.
+ */
+test('같은 구분이라도 품목이 다르면 둘 다 남는다', async () => {
+  const unitId = makeUnit();
+  await call('POST', `/units/${unitId}/items`,
+    { ...ITEM, category: 'appliance', label: '인덕션', lastRenewedOn: '2021-01-10' });
+  await call('POST', `/units/${unitId}/items`,
+    { ...ITEM, category: 'appliance', label: '에어컨', lastRenewedOn: '2022-06-01' });
+
+  const { body } = await call('GET', `/units/${unitId}`);
+  assert.deepEqual(body.items.map((i) => i.label).sort(), ['에어컨', '인덕션']);
 });
 
 test('집에 적은 시공 이력만 지울 수 있게 id 를 따로 돌려준다', async () => {

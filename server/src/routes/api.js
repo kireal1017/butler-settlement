@@ -381,7 +381,8 @@ r.get('/contracts/:id', wrap((req, res) => {
     rules: ruleRow ? repo.toRules(ruleRow) : null,
     ruleItems: ruleRow ? repo.getRuleItems(ruleRow.id) : [],
     damages: repo.getDamages(c.id),
-    repairEvents: repo.getRepairEvents(c.id),
+    /* 갱신 계약을 열었을 때 이전 기간의 수선이 보여야 한다 — 같은 임대차다 */
+    repairEvents: repo.getRepairEventsInChain(c.id),
     arrears: repo.getArrears(c.id),
 
     unit: repo.getUnit(c.unit_id),
