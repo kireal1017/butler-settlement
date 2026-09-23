@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api, won, toIsoDate } from '../api.js';
 import { landlord } from '../session.js';
+import FileDrop from '../components/FileDrop.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -250,8 +251,10 @@ async function save() {
       <div class="card-body">
         <div v-if="ocrError" class="notice" style="margin-bottom:16px">{{ ocrError }}</div>
 
-        <div class="drop">
-          <input type="file" accept="image/*" @change="ocrFile = $event.target.files[0]" />
+        <FileDrop v-model="ocrFile" :max-bytes="10 * 1024 * 1024" :disabled="ocrBusy"
+                  label="계약서 1페이지 사진을 여기에 끌어다 놓으세요" />
+
+        <div class="act">
           <button class="btn btn-primary" :disabled="ocrBusy || !ocrFile" @click="runOcr">
             {{ ocrBusy ? '읽는 중…' : '계약서 읽기' }}
           </button>
@@ -462,9 +465,7 @@ td .pill { display: inline-flex; }
 
 .save { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-lg); }
 
-.drop { display: flex; align-items: center; gap: var(--sp-sm); }
-.drop input { flex: 1; }
-.drop .btn { flex: none; }
+.act { margin-top: var(--sp-md); }
 
 .warns { margin: var(--sp-md) 0 0; padding-left: 20px; font-size: 14px; color: var(--text-body); }
 .warns li + li { margin-top: 4px; }

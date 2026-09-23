@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { api } from '../api.js';
+import FileDrop from './FileDrop.vue';
 
 /**
  * 등기부 업로드 → OCR → 임대인이 눈으로 고쳐 확정.
@@ -40,8 +41,9 @@ function setPreview(f) {
 }
 onBeforeUnmount(() => { if (preview.value) URL.revokeObjectURL(preview.value); });
 
-function pick(e) {
-  file.value = e.target.files[0] ?? null;
+/** 고른 파일이 바뀔 때마다 미리보기를 다시 만든다 (지우면 null) */
+function pick(f) {
+  file.value = f ?? null;
   setPreview(file.value);
 }
 
@@ -112,7 +114,9 @@ defineExpose({ verdict, reset });
       <div v-if="error" class="notice" style="margin-bottom:16px">{{ error }}</div>
 
       <label>등기부 이미지 업로드</label>
-      <input type="file" accept="image/*" @change="pick" />
+      <FileDrop :model-value="file" :max-bytes="12 * 1024 * 1024" :disabled="busy"
+                label="등기부등본 사진을 여기에 끌어다 놓으세요"
+                @update:model-value="pick" />
       <p class="faint" style="margin-top:8px">
         집합건물 등기사항전부증명서 (png · jpg). 사진이면 정면에서 그림자 없이,
         문서가 화면을 가득 채우게 찍어 주세요.
