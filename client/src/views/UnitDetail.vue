@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { api, won, toIsoDate } from '../api.js';
 
@@ -15,6 +15,14 @@ onMounted(async () => {
   catch (e) { error.value = e.message; }
   finally { loading.value = false; }
 });
+
+/**
+ * 작성하다 만 계약. 발송 전이라 집은 아직 공실이고 '계약 작성' 버튼도 살아 있다.
+ * 그 버튼이 새 계약을 또 만드는 것처럼 보이면 안 되므로 문구를 바꿔 둔다
+ * (같은 경로로 가고, 그 화면이 이 계약을 불러와 이어 쓴다).
+ */
+const draftContract = computed(() =>
+  data.value?.contracts.find((c) => c.status === 'draft') ?? null);
 
 /* 세대 상태는 verified, 문서 판정은 matched 로 용어가 다르다 */
 const OWNERSHIP = {
@@ -164,7 +172,7 @@ const years = (from) => {
           {{ OWNERSHIP[data.unit.ownershipStatus].label }}
         </span>
         <RouterLink v-if="data.unit.vacancyStatus === 'vacant'" :to="`/contracts/new?unitId=${data.unit.id}`">
-          <button class="btn btn-primary">계약 작성</button>
+          <button class="btn btn-primary">{{ draftContract ? '작성 중인 계약 이어 쓰기' : '계약 작성' }}</button>
         </RouterLink>
         <RouterLink :to="`/units/${data.unit.id}/registry`">
           <button class="btn">등기부 재인식</button>

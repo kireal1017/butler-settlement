@@ -452,6 +452,27 @@ r.post('/contracts', wrap((req, res) => {
   const landlord = repo.getLandlord(Number(landlordId));
   if (!landlord) return res.status(404).json({ error: '임대인을 찾을 수 없습니다' });
 
+  /**
+   * 발송 전 계약은 한 집에 하나뿐이다.
+   *
+   * 저장하면 계약은 `draft` 로 남지만 집은 아직 공실이라 '계약 작성' 버튼이 살아 있다.
+   * 막지 않으면 그 버튼을 누를 때마다 작성 중 계약이 하나씩 쌓이고, 집은 공실인데
+   * 계약은 임차인 확인을 기다리는 모순된 상태가 된다. 화면은 이 경우 기존 계약을
+   * 불러와 이어 쓰지만, 그 규칙이 화면에만 있으면 쉽게 깨진다.
+   *
+   * 갱신 계약은 이 경로로 오지 않는다 (`svc.renewContract` 가 직접 넣는다).
+   * 거주 중 계약 옆에 다음 임차인 계약을 만드는 것도 막지 않는다 — 막는 것은
+   * **작성 중이 둘이 되는 것** 하나뿐이다.
+   */
+  const draft = db.prepare(
+    `SELECT id FROM contracts WHERE unit_id = ? AND status = 'draft' ORDER BY id DESC LIMIT 1`
+  ).get(unit.id);
+  if (draft)
+    return res.status(409).json({
+      error: '이 집에는 작성 중인 계약이 이미 있습니다. 그 계약을 이어서 고쳐 주세요.',
+      contractId: draft.id,
+    });
+
   const id = db.prepare(`
     INSERT INTO contracts (unit_id, landlord_id, landlord_name, tenant_name, tenant_phone,
                            deposit, monthly_rent, move_in_date, term_months, expires_on,

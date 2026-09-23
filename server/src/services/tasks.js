@@ -165,7 +165,7 @@ export function evaluateTasks(landlordId, today = startOfToday()) {
           dueOn: c.move_out_date,
           title: `${where} — 미합의 ${n}건`,
           body: t.daysToMoveOut >= 0
-            ? `퇴거까지 ${t.daysToMoveOut}일입니다. 전원 동의해야 확정할 수 있습니다.`
+            ? `퇴거까지 ${t.daysToMoveOut}일입니다. 양측 모두 동의해야 확정이 됩니다.`
             : `퇴거일이 지났습니다. 미합의 ${n}건을 정리해 주세요.`,
         });
       }
@@ -178,7 +178,7 @@ export function evaluateTasks(landlordId, today = startOfToday()) {
         push({
           contractId: c.id, unitId: c.unit_id, kind: 'tenant_pending', severity: 'info',
           title: `${where} — 임차인 확인이 ${waited}일째 없습니다`,
-          body: `${c.tenant_name}님에게 보낸 계약 확인 링크에 응답이 없습니다. 연락해 보세요.`,
+          body: `${c.tenant_name}님에게 보낸 계약 확인 링크에 응답이 없습니다.`,
         });
       }
     }

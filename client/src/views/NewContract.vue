@@ -13,6 +13,19 @@ const loading = ref(true);
 const error = ref('');
 const busy = ref(false);
 
+/**
+ * 작성하다 만 계약을 이어 쓴다.
+ *
+ * 저장하면 계약은 `draft` 로 남지만 집은 아직 **공실**이다(발송해야 '계약 진행 중'이 된다).
+ * 그래서 집 화면의 '계약 작성' 버튼이 그대로 살아 있는데, 예전에는 그 버튼이 매번
+ * **새 계약을 하나 더** 만들었다. 한 집에 작성 중 계약이 여러 개 쌓이고, 집은 공실인데
+ * 계약은 임차인 확인을 기다리는 모순된 상태가 됐다.
+ *
+ * 이제 이 화면이 열릴 때 그 집에 작성 중인 계약이 있으면 **그것을 불러와 이어 쓴다.**
+ * 발송 전 계약은 한 집에 하나뿐이라는 뜻이기도 하다(서버도 같은 규칙으로 막는다).
+ */
+const draftId = ref(null);
+
 const CATEGORIES = [
   { v: 'wallpaper', t: '도배' },
   { v: 'flooring', t: '바닥재' },
@@ -110,9 +123,51 @@ onMounted(async () => {
       graceApplicable: ['wallpaper', 'flooring'].includes(it.category),
       fromHistory: true,
     }));
+
+    /* 작성하다 만 계약이 있으면 그 값으로 덮는다 — 이력에서 끌어온 품목보다 우선한다.
+       임대인이 지웠거나 고친 줄이 있을 수 있으므로 저장된 쪽이 사실이다. */
+    const draft = data.contracts.find((c) => c.status === 'draft');
+    if (draft) await loadDraft(draft.id);
   } catch (e) { error.value = e.message; }
   finally { loading.value = false; }
 });
+
+async function loadDraft(id) {
+  const d = await api.contract(id);
+  draftId.value = id;
+
+  form.value = {
+    tenantName: d.contract.tenant_name ?? '',
+    tenantPhone: d.contract.tenant_phone ?? '',
+    deposit: d.contract.deposit ?? 0,
+    monthlyRent: d.contract.monthly_rent ?? 0,
+    moveInDate: d.contract.move_in_date ?? today,
+    termMonths: d.contract.term_months ?? 24,
+  };
+
+  if (d.rules) rules.value = {
+    ltrfBurden: d.rules.ltrfBurden,
+    prorateEdgeMonths: d.rules.prorateEdgeMonths,
+    minorRepairThreshold: d.rules.minorRepairThreshold,
+    wallpaperGraceMonths: d.rules.wallpaperGraceMonths,
+    flooringGraceMonths: d.rules.flooringGraceMonths,
+    lateInterestRate: d.rules.lateInterestRate,
+    tenantPaidAdvanceFee: d.rules.tenantPaidAdvanceFee,
+    advanceFeeAmount: d.rules.advanceFeeAmount,
+  };
+
+  /* 규칙을 저장한 적이 있으면 그때의 품목이 사실이다. 비어 있는 것도 사실이다
+     — 이력에서 끌어온 줄을 임대인이 지웠다는 뜻이므로 되살리지 않는다. */
+  if (d.rules) items.value = d.ruleItems.map((it) => ({
+    category: it.category,
+    label: it.label,
+    usefulLifeYears: it.useful_life_years,
+    lastRenewedOn: it.last_renewed_on,
+    replacementCost: it.replacement_cost,
+    graceApplicable: Boolean(it.grace_applicable),
+    fromHistory: false,
+  }));
+}
 
 /** 만료일 = 입주일 + 기간 − 1일 (표시용. 서버가 같은 식으로 다시 계산한다) */
 const expiresOn = computed(() => {
@@ -140,19 +195,24 @@ function addItem() {
 async function save() {
   busy.value = true;
   error.value = '';
+
+  const terms = {
+    tenantName: form.value.tenantName.trim(),
+    tenantPhone: form.value.tenantPhone.trim() || null,
+    deposit: Number(form.value.deposit),
+    monthlyRent: Number(form.value.monthlyRent),
+    moveInDate: form.value.moveInDate,
+    termMonths: Number(form.value.termMonths),
+  };
+
   try {
-    const contract = await api.createContract({
-      unitId,
-      landlordId: landlord.value.id,
-      tenantName: form.value.tenantName.trim(),
-      tenantPhone: form.value.tenantPhone.trim() || null,
-      deposit: Number(form.value.deposit),
-      monthlyRent: Number(form.value.monthlyRent),
-      moveInDate: form.value.moveInDate,
-      termMonths: Number(form.value.termMonths),
-    });
-    await api.putRules(contract.id, { ...rules.value, items: items.value });
-    router.push(`/contracts/${contract.id}`);
+    /* 이어 쓰는 중이면 **고친다.** 새로 만들면 작성 중 계약이 하나 더 쌓인다. */
+    const id = draftId.value
+      ? (await api.patchContract(draftId.value, terms)).id
+      : (await api.createContract({ unitId, landlordId: landlord.value.id, ...terms })).id;
+
+    await api.putRules(id, { ...rules.value, items: items.value });
+    router.push(`/contracts/${id}`);
   } catch (e) { error.value = e.message; }
   finally { busy.value = false; }
 }
@@ -165,7 +225,7 @@ async function save() {
   <template v-else>
     <div class="head">
       <div>
-        <h1>계약 작성</h1>
+        <h1>{{ draftId ? '작성 중인 계약 이어 쓰기' : '계약 작성' }}</h1>
         <p class="muted">
           {{ unit.complexName }} {{ unit.dong }} {{ unit.ho }} · 전용 {{ unit.exclusiveArea }}㎡
         </p>
@@ -174,6 +234,12 @@ async function save() {
     </div>
 
     <div v-if="error" class="notice" style="margin-bottom:16px">{{ error }}</div>
+
+    <div v-if="draftId" class="notice resumed">
+      이 집에 <strong>작성 중인 계약</strong>이 있어 그 내용을 불러왔습니다.
+      저장하면 새 계약이 생기지 않고 <strong>이 계약이 고쳐집니다.</strong>
+      임차인에게 보내기 전까지는 한 집에 작성 중 계약을 하나만 둡니다.
+    </div>
 
     <!-- 계약서 OCR -->
     <div class="card">
@@ -369,11 +435,11 @@ async function save() {
     <div class="card">
       <div class="card-body save">
         <p class="faint" style="margin:0">
-          저장하면 <strong>작성 중</strong> 상태로 만들어집니다.
-          임대인 확정과 임차인 발송은 다음 화면에서 합니다.
+          저장해도 아직 <strong>작성 중</strong>입니다 — 임차인에게 가지 않습니다.
+          임대인 확정과 발송은 다음 화면에서 하고, 그전까지는 언제든 다시 들어와 고칠 수 있습니다.
         </p>
         <button class="btn btn-primary" :disabled="busy || !canSave" @click="save">
-          {{ busy ? '저장 중…' : '계약 저장' }}
+          {{ busy ? '저장 중…' : draftId ? '이어서 저장' : '계약 저장' }}
         </button>
       </div>
     </div>
@@ -409,4 +475,6 @@ td .pill { display: inline-flex; }
   background: var(--surface-2); border-radius: var(--radius-md); font-size: 14px;
 }
 label .pill { margin-left: 6px; vertical-align: middle; }
+
+.resumed { margin-bottom: var(--sp-md); }
 </style>
